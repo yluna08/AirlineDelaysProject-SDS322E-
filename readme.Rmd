@@ -33,9 +33,50 @@ The Airline On-Time Performance Data is a data set collected over time by the Un
 **References**: [data from website](https://www.transtats.bts.gov/Fields.asp?gnoyr_VQ=FGJ)
 
 ```{r}
+# setting up data to work with it
 library(tidyverse)
 airplanes <- read.csv("T_ONTIME_MARKETING.csv")
+
+# looking at dataset
 glimpse(airplanes)
+
+# first data visualization
+airplanes %>% group_by(ORIGIN_AIRPORT_ID) %>%
+  mutate(f=n()) %>%
+  mutate(size_group = case_when(
+  f >= 20000 ~ '>=20000',
+  f >= 15000 ~ '>=15000',
+  f >= 10000 ~ '>=10000',
+  f >= 5000 ~ '>=5000',
+  f >= 1000 ~ '>=1000',
+  f >= 500 ~ '>=500',
+  TRUE ~ '<=500')) %>%
+  mutate(size_group = factor(size_group,
+                         	levels = c('>=20000',
+                                    	'>=15000',
+                                    	'>=10000',
+                                    	'>=5000',
+                                    	'>=1000',
+                                    	'>=500',
+                                    	'<=500'))) %>%
+  ggplot(aes(x=size_group, y=DEP_DELAY)) + geom_bar(stat='summary') +
+  geom_errorbar(stat='summary', width = 0.2) +
+  labs(x = 'number of departure flights', y = 'departure delay (min)',
+   	title = 'Departure delay by airport size')
+
+
+# second data visualization 
+
+airplanes %>% filter(!is.na(CARRIER_DELAY)) %>%
+  mutate(main_cause = case_when(
+	pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == CARRIER_DELAY ~ "carrier",
+	pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == WEATHER_DELAY ~ "weather",
+	pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == NAS_DELAY ~ 'nas',
+	pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == SECURITY_DELAY ~ "security",
+	pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == LATE_AIRCRAFT_DELAY ~ "late_aircraft",
+	TRUE ~ "none"
+  )) %>%
+  ggplot(aes(x=DEP_DELAY, fill=main_cause)) + geom_density(alpha = 0.5) + scale_x_log10() + labs(x='departure delay (min)')
 
 
 ```
