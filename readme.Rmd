@@ -33,6 +33,9 @@ The Airline On-Time Performance Data is a data set collected over time by the Un
 **References**: [data from website](https://www.transtats.bts.gov/Fields.asp?gnoyr_VQ=FGJ)
 
 ```{r}
+library(tidyverse)
+airplanes <- read.csv("T_ONTIME_MARKETING.csv")
+glimpse(airplanes)
 
 
 ```
