@@ -1,0 +1,69 @@
+---
+title: ""
+pagetitle: 'Project Overview'
+output: 
+  html_document: 
+    css: "Projectstyles.css"
+---
+
+```{r, include=FALSE}
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+```
+
+------------------------------------------------------------------------
+
+<header>
+<h1>Project Overview</h1>
+</header>
+
+<section>
+<nav>
+  <ul>
+    <li><a href="#intro">Introduction</a></li>
+    <br>
+    <li><a href="#data">Data</a></li>
+    <br>
+    <li><a href="#obj">Objectives</a></li>
+    <br>
+  </ul>
+</nav>
+
+<article>
+  <h1 id="intro">Introduction</h1>
+  <br>
+  <p>Aviation is an extremely advanced method of transportation and still many of us have dealt with delayed flights!</p>
+  <br>
+  <p>On time arrival is not just important for us but the airlines as well. Late arrival can be anything from inconvenient to downright disastrous!</p>
+  <br>
+  <p>Our project explores several relationships regarding delays.</p>
+  <br>
+  <h1 id="data">Data</h1>
+  <br>
+  <p>Dataset: "Airline On-Time Performance and Cause of Flight Delays"</p>
+  <br>
+  <p>From: Bureau of Transportation Statistics</p>
+  <br>
+  <p>Details:</p>
+  <ul style="list-style-type:circle">
+    <li>Looking at January to December 2022</li>
+    <br>
+    <li>Only flights to or from Texas</li>
+    <br>
+    <li>A flight is considered late if it is more than 15 minutes delayed</li>
+    <br>
+  </ul>
+  <br>
+  <h1 id="obj">Objectives</h1>
+  <br>
+  <p>We will explore the following questions:</p>
+  <ul style="list-style-type:circle">
+    <li>What is the relationship between airports and delay times?</li>
+    <br>
+    <li>What kind of delay causes the longest departure delay?</li>
+    <br>
+    <li>Are weather delays specific to certain months?</li>
+  </ul>
+  <br>
+  </article>
+</section>
+

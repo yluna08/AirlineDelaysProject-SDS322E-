@@ -1,0 +1,27 @@
+---
+title: 'Airport Delays Project'
+pagetitle: 'Airlines Project Homepage'
+output: 
+  html_document: 
+    css: "Projectstyles.css"
+---
+
+```{R echo=F, eval=F}
+rmarkdown::site_generator()
+```
+ 
+<img src="airplaneiconproject.png" style=width:30% class="img-circle">
+
+<br>
+
+<h1> Welcome to our project homepage! </h1>
+<h5> Team: Devin Xiao, Feifei Cao, Joy Richardson, Sophia Bautista, Vedika Shirtekar, Yasmeen Luna </h5>
+<h6> The top right corner is linked to our github repository where you can access the dataset, our code, and final project report! </h6>
+
+<br>
+
+
+
+
+
+
