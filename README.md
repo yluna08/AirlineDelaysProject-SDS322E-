@@ -19,17 +19,8 @@ https://drive.google.com/file/d/1ewoXW2YnCfzAoJ-pPHaR0raOpHCyktMi/view?usp=drive
 
 **Hypotheses**:
 
-- What is the relationship between airports and delay times 
-  - We predict that major airports in America are best at avoiding delays.
-
-- What kind of delay causes the longest departure delay 
-  - We predict that averaged across all airports, the security delay has the shortest delay time, and the weather        delay has the longest delay time.
 
 **References**:
-https://www.transtats.bts.gov/Fields.asp?gnoyr_VQ=FGJ
 
-**Data Visualizations**:
 
-![firstvisualization](firstvisualization.png)
-![secondvisualization](secondvisualization.png)
 
