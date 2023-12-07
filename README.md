@@ -19,6 +19,9 @@ Our project analyzes the data of domestic flights, focusing on Texas, in order t
 The Airline On-Time Performance Data is a data set collected over time by the United States Department of Transportation. In this dataset, carriers report data for the flights operated, including their arrival/departure dates, carrier, origin, airport, causes of delay and cancellation, air time, and non-stop distance. The dataset spans from 1987 to the present. 
 We also combined this flight data with the National Oceanic and Atmospheric Administration's hurricane and tropical storm impact data to explore how hurricanes and tropic storms impact flight delays.
 
+Link to code: https://drive.google.com/drive/folders/17ouEpHQJjsc9YY3IQuCYlVKFD6Fg4xk6?usp=drive_link
+Link to cleaned data: https://drive.google.com/drive/folders/1HbZ8vkSSDwGU05Psc2MVODOCatTjlpqt?usp=drive_link
+
 **Hypotheses**:
 1. Larger airports experience more frequent and longer delays than smaller airports because a larger volume flights is more difficult to manage. Additionally, the average flight distance for larger airports may be longer than for smaller airports, which may contribute to delay times.
 2. Weather delay is the most important predictor of delay times because its density covers the longest delay times.
