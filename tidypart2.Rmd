@@ -1,0 +1,151 @@
+---
+title: "Data cleaning"
+output:
+  html_document: default
+  word_document: default
+date: "2023-12-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+
+```
+
+
+```{r}
+# import raw dataset 
+data <- read_csv("/Users/devin/OneDrive/Desktop/new airports/raw_data.csv")
+hurricanes <- read_csv("/Users/devin/OneDrive/Desktop/new airports/hurricanes.csv")
+storms <- read_csv("/Users/devin/OneDrive/Desktop/new airports/storms.csv")
+
+# rename columns
+hurricanes <- hurricanes %>% rename(Hurricane = Name)
+```
+
+Tidy the main dataset 
+```{r}
+# tidy the main dataset
+
+data1 <- data %>% 
+  #filter for non-cancelled flights
+  filter(CANCELLED == 0) %>% 
+  #remove unwanted columns
+  select(-CANCELLED, -ORIGIN_AIRPORT_ID, -DEST_AIRPORT_ID, -DEP_TIME, -ARR_TIME) %>% 
+  #departure hour is the hour the flight is scheduled to depart 
+  mutate(CRS_DEP_HOUR = substr(CRS_DEP_TIME, 1, 2)) %>% 
+  #change departure hour to numeric
+  mutate(CRS_DEP_HOUR = as.numeric(CRS_DEP_HOUR)) %>%
+  #arrival hour is the hour the flight is scheduled to arrive 
+  mutate(CRS_ARR_HOUR = substr(CRS_ARR_TIME, 1, 2)) %>% 
+  #change departure hour to numeric
+  mutate(CRS_ARR_HOUR = as.numeric(CRS_ARR_HOUR)) %>%
+  #remove more unwanted columns
+  select(-CRS_DEP_TIME, -CRS_ARR_TIME, -DEP_DELAY_NEW, -ARR_DELAY_NEW,
+         -CRS_ELAPSED_TIME, -ACTUAL_ELAPSED_TIME) %>%
+  #find the main cause of the delay
+  mutate(main_cause = case_when(
+    #if a delay is not late, all of the delays are NA 
+    is.na(CARRIER_DELAY) ~ "not late",
+    #otherwise, there is a main cause of delay
+    pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == CARRIER_DELAY ~ "carrier",
+    pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == WEATHER_DELAY ~ "weather",
+    pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == NAS_DELAY ~ 'nas',
+    pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == SECURITY_DELAY ~ "security",
+    pmax(CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY) == LATE_AIRCRAFT_DELAY ~ "late_aircraft")) %>%
+  
+  #group by year and month
+  group_by(YEAR, MONTH) %>%
+  #sample 20000 observations for every month to make the data easier to work with
+  sample_n(20000) %>%
+  ungroup()
+
+```
+
+
+Add columns AIRPORT_SIZE_GROUP and NUMBER_FLIGHTS
+```{r}
+data1 <- data1 %>% group_by(ORIGIN) %>% mutate(NUMBER_FLIGHTS=n()) %>%
+  ungroup() %>%
+  mutate(AIRPORT_SIZE_GROUP = cut(NUMBER_FLIGHTS, breaks=c(0, 1000, 2000, 4000, 10000, 20000, 40000, 100000, Inf), labels=c(0, 1, 2, 3, 4, 5, 6, 7)))
+
+
+```
+
+Combine hurricane data with flight dataset
+```{r}
+
+#find when there is a hurricane in a particular month for all origin states
+a <- hurricanes %>% rename(MONTH=Month, YEAR=Year, ORIGIN_STATE_NM=State, 
+                           HURRICANE_DAY=Day )
+#join hurricane data with flight data, looking at origin states
+origin <- data1 %>% left_join(a, by=c("MONTH", 'YEAR', 'ORIGIN_STATE_NM'))
+
+#find when there is a hurricane in a particular month for all destination states 
+a <- hurricanes %>% rename(MONTH=Month, YEAR=Year, DEST_STATE_NM=State,
+                           HURRICANE_DAY=Day)
+#join hurricane data with flight data, looking at destination states 
+dest <- data1 %>% left_join(a, by=c("MONTH", 'YEAR', 'DEST_STATE_NM'))
+
+#find all flights affected by hurricanes in origin that are not in dest 
+diff1 <- anti_join(origin, dest) %>% filter(!is.na(Hurricane))
+
+#find all flights affected by hurricanes in dest that are not in origin 
+diff2 <- anti_join(dest, origin) %>% filter(!is.na(Hurricane))
+
+#find all flights affected by hurricanes in both dest and origin
+both <- inner_join(origin, dest) %>% filter(!is.na(Hurricane))
+
+#combine diff1, diff2, and both into 1 dataset 
+merged_df <- merge(diff1, diff2, all=T) %>% merge(both, all=T)
+
+#combine original dataset with hurricane dataset
+final <- data1 %>% left_join(merged_df)
+
+
+
+```
+
+Combine storm data with flight dataset
+```{r}
+#find when there is a storm in a particular month for all origin states
+a <- storms %>% rename(ORIGIN_STATE_NM=state, 
+                           STORM_DAY=DAY)
+#join storm data with flight data, looking at origin states
+origin <- data1 %>% left_join(a, by=c("MONTH", 'YEAR', 'ORIGIN_STATE_NM'))
+
+#find when there is a storm in a particular month for all destination states 
+a <- storms %>% rename(DEST_STATE_NM=state,
+                           STORM_DAY=DAY)
+#join storm data with flight data, looking at destination states 
+dest <- data1 %>% left_join(a, by=c("MONTH", 'YEAR', 'DEST_STATE_NM'))
+
+#find all flights affected by storms in origin that are not in dest 
+diff1 <- anti_join(origin, dest) %>% filter(!is.na(storm))
+
+#find all flights affected by storms in dest that are not in origin 
+diff2 <- anti_join(dest, origin) %>% filter(!is.na(storm))
+
+#find all flights affected by storms in both dest and origin
+both <- inner_join(origin, dest) %>% filter(!is.na(storm))
+
+#combine diff1, diff2, and both into 1 dataset 
+merged_df <- merge(diff1, diff2, all=T) %>% merge(both, all=T)
+
+#combine original dataset with hurricane dataset
+final1 <- final %>% left_join(merged_df)
+
+
+```
+
+
+```{r}
+#write.csv(final1, file = "/Users/devin/OneDrive/Desktop/new airports/cleaned_data.csv", row.names = FALSE)
+
+```

@@ -1,0 +1,211 @@
+---
+title: "Visualizations"
+output: html_document
+date: "2023-12-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+
+```
+
+```{r}
+# import main dataset
+data <- read_csv("/Users/devin/OneDrive/Desktop/new airports/cleaned_data.csv")
+
+# this dataset has information on operating carriers, but only for 2022
+data1 <- read_csv("/Users/devin/OneDrive/Desktop/new airports/op_carrier2022.csv")
+```
+
+
+
+```{r}
+
+# Question 1:
+# What is the relationship between airport (sizes) and delay times?
+
+# look at the sizes of Texas airports 
+# we will focus on Texas because there are more flights from Texas in our dataset 
+data %>% group_by(ORIGIN) %>%
+  filter(ORIGIN_STATE_NM=='Texas') %>% summarize(n=n())  %>% arrange(desc(n))
+
+# we will look at departure delay times for large and small airports
+data %>%
+  # we are interested in flights from Texas
+  filter(ORIGIN_STATE_NM == 'Texas') %>%
+  # the top 6 airports have more than 15000 flights
+  mutate(top_6 = ifelse(NUMBER_FLIGHTS > 15000, T, F)) %>%
+  ggplot(aes(x=MONTH, y=DEP_DELAY, color=top_6)) + 
+  geom_line(stat='summary', fun='mean') + 
+  geom_errorbar(stat='summary', fun.data='mean_se', width=0.2) + 
+  labs(x='Month', y='Mean departure delay (min)', color='Top 6 airport',
+       title='Departure delays for Texas airports') + 
+  scale_x_continuous(breaks=seq(1,12)) + 
+  facet_wrap(~YEAR)
+
+#ggsave('plot1.png')
+
+```
+
+
+```{r}
+
+# now we will look at the percentage of flights that are delayed 
+data %>%
+  # we are interested in flights from Texas
+  filter(ORIGIN_STATE_NM == 'Texas') %>%
+  # the top 6 airports have more than 15000 flights
+  mutate(top_6 = ifelse(NUMBER_FLIGHTS > 15000, T, F)) %>% 
+  # DEP_DEL15 indicates if a flight is late (1) or not (0)
+  ggplot(aes(x=MONTH, y=DEP_DEL15, color=top_6)) + 
+  geom_line(stat='summary', fun='mean') + 
+  geom_errorbar(stat='summary', fun.data='mean_se', width=0.2) +
+  labs(x='Month', y='Percent of late departures', color='Top 6 airport',
+       title='Percent of late departures for Texas airports') + 
+  scale_x_continuous(breaks=seq(1,12)) +
+  facet_wrap(~YEAR)
+
+#ggsave('plot2.png')
+
+
+```
+
+```{r}
+
+# Question 2: 
+# What kind of delay causes the longest delay? 
+
+# if carrier delay is na, then all other delays are na
+# so we can filter for non-na carrier delays (or any other delay type)
+data %>% filter(!is.na(CARRIER_DELAY)) %>% 
+  #filter for late departures
+  filter(DEP_DELAY > 15) %>% 
+  ggplot(aes(x=DEP_DELAY, fill=main_cause)) + geom_density(alpha = 0.3) +
+  scale_x_log10() +
+  labs(x='Departure delay (min)', y='Density', fill='Main cause', title='Departure delay by main cause of delay')
+
+#ggsave('plot3.png')
+
+```
+
+```{r}
+library(tidyverse)
+library(cluster)
+
+## Let's start by clustering on just two variables
+delays <- data %>% select(DEP_DELAY, ARR_DELAY, 
+                            CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY,
+                            LATE_AIRCRAFT_DELAY)
+
+cmat <- delays %>% cor(use='pair')
+
+# make the data tidy 
+tidycor <- cmat %>% 
+  as.data.frame() %>% # renames the first column to var1
+  rownames_to_column('var1') %>% #move secondary variables under column var2 
+  pivot_longer(cols=c(2:8), names_to='var2', values_to='correlation')
+
+tidycor %>% ggplot(aes(x=var1, y=var2, fill=correlation)) +
+  geom_tile() + # visualize correlation matrix
+  scale_fill_gradient2(low='red', mid='white', high='blue') + # choose colors
+  geom_text(aes(label=round(correlation, digits=3))) + # label with correlations 
+  # rotate x-axis to fit 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#ggsave('plot9.png')
+```
+
+
+
+
+
+
+```{r}
+
+# Question 3: 
+# What is the relationship between airline (marketing carrier) and carrier delay?
+
+# look at carrier delay across different carriers
+# we have to use the dataset with operating carrier information
+data1 %>% 
+  # give carrier delay a delay of 0 if the flight is not delayed 
+  mutate(CARRIER_DELAY = ifelse(is.na(CARRIER_DELAY), 0,
+                                CARRIER_DELAY)) %>%
+  #we may want to know the size of the carrier
+  #group by airline
+  group_by(OP_UNIQUE_CARRIER) %>%
+  #find number of flights by carrier
+  mutate(carrier_flights = n()) %>%
+  ungroup() %>%
+  # reorder marketing carrier based on carrier delay
+  ggplot(aes(x=reorder(OP_UNIQUE_CARRIER, CARRIER_DELAY), y=CARRIER_DELAY, fill=carrier_flights)) +
+  geom_bar(stat='summary') + 
+  geom_errorbar(stat='summary', width=0.2) + 
+  labs(x="Operating carrier", y="Carrier delay", fill = "Number of flights",
+       title="Carrier delay by airline in 2022") 
+
+#ggsave('plot5.png')
+
+
+```
+
+
+```{r}
+
+# Question 4: 
+# What is the effect of hurricane season on weather delays?
+
+data %>% 
+  # look at delayed flights
+  filter(!is.na(WEATHER_DELAY)) %>%
+  # new hurricane day is 999999 if there is no hurricane in that month
+  mutate(new_hurricane_day = ifelse(is.na(HURRICANE_DAY), 999999, HURRICANE_DAY)) %>%
+  
+  # hurricane affected covers a time period from 1 day before to 5 days after
+  # the hurricane hits 
+  mutate(hurricane_affected = ifelse((HURRICANE_DAY-1 <= DAY_OF_MONTH) &
+                                       (DAY_OF_MONTH <= HURRICANE_DAY+5),
+                                     Hurricane, NA)) %>%
+  # reorder the hurricanes based on weather delay
+  ggplot(aes(x=reorder(hurricane_affected, WEATHER_DELAY), y=WEATHER_DELAY, fill=Highest_SS_Category)) +
+  geom_bar(stat='summary') + 
+  geom_errorbar(stat='summary', width=0.2) + 
+  labs(x="Hurricane", y="Weather delay", fill="Highest Saffir-Simpson Category",
+       title="Mean weather delay by hurricane")
+
+#ggsave('plot7.png')
+
+```
+
+```{r}
+
+# Do some states experience more weather delays than others? 
+
+weather <- data %>% 
+  # if there is no weather delay, set it to 0 
+  mutate(WEATHER_DELAY = ifelse(is.na(WEATHER_DELAY), 0, WEATHER_DELAY) )%>%
+  #Florida and California chosen because similar size, but Florida is prone to hurricanes 
+  filter(ORIGIN_STATE_NM == 'Florida' | ORIGIN_STATE_NM == 'California') %>% 
+  # a flight is weather impacted if there is a nonzero weather delay
+  mutate(weather_impacted = ifelse(WEATHER_DELAY>0, 1, 0)) 
+
+
+weather %>% ggplot(aes(x=MONTH, y=weather_impacted, color=ORIGIN_STATE_NM)) +
+  geom_line(stat='summary') +
+  geom_errorbar(stat='summary', width=0.2) + 
+  # if the origin state is not Texas, then the destination must be Texas
+  labs(x='Month', y='Percent of delayed flights impacted by weather',
+       color='Origin state', title='Impact of weather on fights to Texas') +
+  scale_x_continuous(breaks=seq(1,12))
+
+#ggsave('plot8.png')
+
+```
+
+
